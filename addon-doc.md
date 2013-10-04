@@ -2,7 +2,7 @@
 
 ![Librato Dashboard](https://librato_images.s3.amazonaws.com/heroku-docs/librato-rails-dashboard.png "Librato Dashboard")
 
-Librato is a complete solution for monitoring and analyzing the metrics that impact your business at all levels of the stack. It provides everything you need to visualize, analyze, and actively alert on the metrics that matter to you. With drop-in support for [Rails 3.x][rails-gem], [JVM-based applications][coda-backend], and [other languages][lang-bindings] you'll have metrics streaming into Librato in minutes. From there you can build custom charts/dashboards, annotate them with one-time events, and set threshold-based alerts.  Collaboration is supported through multi-user access, private dashboard links, PNG chart snapshots, and seamless integration with popular third-party services like PagerDuty, Campfire, and HipChat.  Additionally Librato is first-and-foremost a platform whose complete capabilites are programatically accessible via a [RESTful API][api-docs] with bindings available for [a growing host of languages][lang-bindings] including Ruby, Python, Java, Go, Clojure, Node.js, etc.
+Librato is a complete solution for monitoring and analyzing the metrics that impact your business at all levels of the stack. It provides everything you need to visualize, analyze, and actively alert on the metrics that matter to you. With drop-in support for [Rails 3.x][rails-gem]/[Rack][rack-gem], [JVM-based applications][coda-backend], and [other languages][lang-bindings] you'll have metrics streaming into Librato in minutes. From there you can build custom charts/dashboards, annotate them with one-time events, and set threshold-based alerts.  Collaboration is supported through multi-user access, private dashboard links, PNG chart snapshots, and seamless integration with popular third-party services like PagerDuty, Campfire, and HipChat.  Additionally Librato is first-and-foremost a platform whose complete capabilities are programmatically accessible via a [RESTful API][api-docs] with bindings available for [a growing host of languages][lang-bindings] including Ruby, Python, Java, Go, Clojure, Node.js, etc.
 
 ## Provisioning the add-on
 
@@ -16,7 +16,7 @@ A list of all plans available can be found [here](http://addons.heroku.com/libra
     $ heroku addons:add librato
     -----> Adding librato to sharp-mountain-4005... done, v18 (free)
 
-Once Librato has been added a `LIBRATO_USER` and `LIBRATO_TOKEN` settings will be available in the app configuration and will contain the credentials needed to authenticate to the [Librato API][api-docs]. This can be confirmed using the `heroku config:get` command.
+Once Librato has been added, settings for `LIBRATO_USER` and `LIBRATO_TOKEN` will be available in the app configuration and will contain the credentials needed to authenticate to the [Librato API][api-docs]. This can be confirmed using the `heroku config:get` command.
 
     :::term
     $ heroku config:get LIBRATO_USER
@@ -25,15 +25,17 @@ Once Librato has been added a `LIBRATO_USER` and `LIBRATO_TOKEN` settings will b
 After installing Librato you will need to explicitly set a value for `LIBRATO_SOURCE` in the app configuration. `LIBRATO_SOURCE` informs the Librato service that the metrics coming from each of your dynos belong to the same application.
 
     :::term
-    $ heroku config:add LIBRATO_SOURCE=myappname
+    $ heroku config:set LIBRATO_SOURCE=myappname
 
 The value of `LIBRATO_SOURCE` must be composed of characters in the set `A-Za-z0-9.:-_` and no more than 255 characters long. You should use a permanent name, as changing it in the future will cause your historical metrics to become disjoint.
 
-## Using with Rails 3.x
+## Using with Ruby
 
-Verify that the `LIBRATO_USER` and `LIBRATO_SOURCE` variables are set.
+Ruby is currently supported as either Rails 3 or Rack applications. For other Ruby environments please contact us through one of the methods described below in the *Support* section.
 
-Ruby on Rails applications need to add the following entry into their `Gemfile` specifying the Librato client library.
+### Rails 3 Installation
+
+Verify that the `LIBRATO_USER` and `LIBRATO_SOURCE` variables are set. Ruby-on-Rails applications need to add the following entry into their `Gemfile` specifying the Librato client library.
 
     :::ruby
     gem 'librato-rails'
@@ -49,15 +51,45 @@ Finally re-deploy your application.
     $ git commit -a -m "add librato-rails instrumentation"
     $ git push heroku master
 
-### Automatic Instrumentation
+The source code and a detailed `README` for `librato-rails` are [available on GitHub][rails-gem].
 
-After setting `LIBRATO_SOURCE` in the app configuration, installing the `librato-rails` gem and deploying your app you will see a number of metrics appear automatically in your Librato account.  These are powered by [ActiveSupport::Notifications][asn] and track request performance, sql queries, mail handling, etc.
+#### Automatic Rails Instrumentation
+
+After installing the `librato-rails` gem and deploying your app you will see a number of metrics appear automatically in your Librato account.  These are powered by [ActiveSupport::Notifications][asn] and track request performance, sql queries, mail handling, etc.
 
 Built-in performance metric names will start with either `rack` or `rails`, depending on the level they are being sampled from. For example: `rails.request.total` is the total number of requests rails has received each minute.
 
+Support for optionally disabling automatic instrumentation in `librato-rails` is currently under development. In the interim as a workaround you can instead use `librato-rack` (installation described below) to access the same custom instrumentation primitives without any automatic Rails metrics.
+
+### Rack Installation
+
+Verify that the `LIBRATO_USER` and `LIBRATO_SOURCE` variables are set. Rack applications need to add the following entry into their `Gemfile` specifying the Librato client library.
+
+    :::ruby
+    gem 'librato-rack'
+
+Then update application dependencies with bundler.
+
+    :::term
+    $ bundle install
+
+Then in your rackup file (or equivalent), require and add the middleware:
+
+    :::ruby
+    require 'librato-rack'
+    use Librato::Rack
+
+Finally re-deploy your application.
+
+    :::term
+    $ git commit -a -m "add librato-rack instrumentation"
+    $ git push heroku master
+
+The source code and a detailed `README` for `librato-rack` are [available on GitHub][rack-gem].
+
 ### Custom Instrumentation
 
-The power of Librato really starts to shine when you start adding your own custom instrumentation to the mix. Tracking anything in your application that interests you is easy Librato. There are basically four instrumentation primitives available:
+Once you've installed Librato in either your Rails 3 or Rack application, you can immediately and easily start adding your own custom instrumentation. There are four simple instrumentation primitives available:
 
 #### increment
 
@@ -117,21 +149,21 @@ Can also be written as:
 
 Symbols can be used interchangably with strings for metric names.
 
-### Troubleshooting with Rails 3.x
+### Troubleshooting with Ruby
 
 Check the logs for messages such as this
 
     :::term
     [librato-rails] halting: source must be provided in configuration.
 
-The `librato-rails` gem supports multiple logging levels that are useful in diagnosing any issues with reporting metrics to Librato. These are controlled by the `LIBRATO_LOG_LEVEL` configuration.
+Both the `librato-rails` and `librato-rack` gems support multiple logging levels that are useful in diagnosing any issues with reporting metrics to Librato. These are controlled by the `LIBRATO_LOG_LEVEL` configuration.
 
     :::term
-    $ heroku config:add LIBRATO_LOG_LEVEL=debug
+    $ heroku config:set LIBRATO_LOG_LEVEL=debug
 
-Set your log level to `debug` to log detailed information about the settings `librato-rails` is seeing at startup and when it is submitting metrics back to the Librato service.
+Set your log level to `debug` to log detailed information about the settings the gem is seeing at startup and when it is submitting metrics back to the Librato service.
 
-If you are having an issue with a specific metric, setting a log level of `trace` additionally logs the exact measurements being sent along with lots of other information about librato-rails as it executes.
+If you are having an issue with a specific metric, setting a log level of `trace` additionally logs the exact measurements being sent along with lots of other information about instrumentation execution.
 
 Neither of these modes are recommended long-term in production as they will add quite a bit of volume to your log stream and will slow operation somewhat.  Note that submission I/O is non-blocking, submission times are total time - your process will continue to handle requests during submissions.
 
@@ -170,9 +202,9 @@ As long as the plan you are migrating to includes enough allocated measurements 
 Use the `heroku addons:upgrade` command to migrate to a new plan.
 
     :::term
-    $ heroku addons:upgrade librato:newplan
-    -----> Upgrading librato:newplan to sharp-mountain-4005... done, v18 ($49/mo)
-           Your plan has been updated to: librato:newplan
+    $ heroku addons:upgrade librato:gold-10
+    -----> Upgrading librato:gold-10 to sharp-mountain-4005... done, v18 ($49/mo)
+           Your plan has been updated to: librato:gold-10
 
 ## Removing the add-on
 
@@ -194,6 +226,7 @@ All Librato support and runtime issues should be submitted via one of the [Herok
 [api-docs]: http://dev.librato.com/v1/metrics
 [lang-bindings]: http://support.metrics.librato.com/knowledgebase/articles/122262-language-bindings
 [rails-gem]: https://github.com/librato/librato-rails
+[rack-gem]: https://github.com/librato/librato-rack
 [coda-metrics]: http://metrics.codahale.com/
 [coda-backend]: https://github.com/librato/metrics-librato
 [asn]: http://api.rubyonrails.org/classes/ActiveSupport/Notifications.html
