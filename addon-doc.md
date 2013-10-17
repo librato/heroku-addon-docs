@@ -133,6 +133,14 @@ in Librato with the name `database.size`:
     :::ruby
     $stdout.puts("sample#database.size=40.9MB")
 
+### Custom sources
+Librato supports an additional dimension to the metric name called the [*source*][librato-sources]. This enables you to report the same metric associated with multiple different entities and intelligently share a single set of visualizations, alerts, etc. For example our support for Heroku's native runtime metrics uses the dyno's logical role as the source to differentiate between dynos. You associate a measurement with a source by adding a source key=value pair to the log line:
+
+    :::ruby
+    $stdout.puts("source=us-east measure#web.latency=4ms")
+
+Note that each source value used in a metric creates a unique data stream defined by *(metric, source)* that counts against your current plans capacity for custom metrics as [described below][picking-plans].
+
 ## Configuring additional integrations
 Once Librato has been added, settings for `LIBRATO_USER` and
 `LIBRATO_TOKEN` will be available in the app configuration and will
@@ -366,4 +374,6 @@ All Librato support and runtime issues should be submitted via one of the [Herok
 [log-router-metrics]: https://devcenter.heroku.com/articles/http-routing#heroku-router-log-format
 [log-runtime-metrics]: https://devcenter.heroku.com/articles/log-runtime-metrics
 [log-postgres-metrics]: https://devcenter.heroku.com/articles/heroku-postgres-metrics-logs
+[librato-sources]: http://support.metrics.librato.com/knowledgebase/articles/47904-what-is-a-source-
 [librato-summary-statistics]: http://blog.librato.com/posts/2013/6/3/fine-grained-access-to-summary-statistics
+[picking-plans]: https://devcenter.heroku.com/articles/librato#picking-a-plan
