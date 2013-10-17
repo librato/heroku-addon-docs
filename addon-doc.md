@@ -315,6 +315,18 @@ Note that if Heroku idles your application, measurements will not be sent until 
 
 For troubleshooting instructions more specific to your particular platform, please see our polyglot documentation provided above. The documentation for each supported platform ends with a troubleshooting subsection titled in the form *Troubleshooting with ...*.
 
+## Picking a plan
+
+The `development` plan is free and intended to provide you with some basic, but extremely useful information about your application running on Heroku. It includes all the native router/postgres metrics and presents them to you in a single dashboard that displays the last hour of data. To access native runtime metrics, record custom metrics, configure alerting, access more than the last hour's worth of data, etc you'll need to upgrade to a paid plan.
+
+Depending on your intended usage level there are several [plans][addon-plans] to choose from. Each plan includes the native router and postgres metrics and offers an increasingly larger capacity for other metrics. This capacity is consumed by both native runtime metrics (which scale with the number of dynos) and custom metrics. So when choosing a plan you need to account for the number of custom metrics you intend to track and (if you've enabled runtime metrics) the number of dynos.
+
+Per-dyno runtime metrics are available to any Heroku application and currently disabled by default. If you enable runtime metrics (which we highly recommend) each dyno adds 9 metrics. To make this calculation easy, we've listed with each plan the number of dynos it can support with no additional custom metrics. For example the Gold plan includes 300 metrics which you can use for up to 33 Dynos (33 dynos x 9 metrics = 297).
+
+Custom metrics are typically aggregated across dynos in an application and can be directly decremented from the plan's capacity when estimating. Do keep in mind that some primitives (e.g. the `measure#` supported in our logging integration) may report different parts of a distribution as multiple metrics.
+
+The only other component that some advanced users may need to consider is submitting metrics at resolution higher than the default of 60s. All metrics submitted through our logging integration are at 60s resolution, so this section only applies if you are directly submitting metrics to Librato's API from your application code at an interval of less than 60s. Note that the `nickel` plan doesn't support sub-60s reporting, so you must be on `bronze` or higher. If these conditions apply we normalize your resolution to 60s to calculate the capacity consumed. For example, 10s resolution metrics consume metric capacity at a rate of 2.5x 60s resolution metrics so the Bronze plan that includes 50 metrics at 60s resolution and 20 metrics at 10s resolution.
+
 ## Migrating between plans
 
 As long as the plan you are migrating to includes enough allocated measurements for your usage, you can migrate between plans at any time without any interruption to your metrics.
@@ -343,6 +355,7 @@ API][api-docs].
 
 All Librato support and runtime issues should be submitted via one of the [Heroku Support channels](support-channels). Any non-support related issues or product feedback for Librato is welcome via [email](mailto:support@librato.com), [live chat](http://chat.librato.com), or the [support forum](http://support.metrics.librato.com).
 
+[addon-plans]: https://addons.heroku.com/librato
 [api-docs]: http://dev.librato.com/v1/metrics
 [lang-bindings]: http://support.metrics.librato.com/knowledgebase/articles/122262-language-bindings
 [rails-gem]: https://github.com/librato/librato-rails
